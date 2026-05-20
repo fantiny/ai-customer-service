@@ -61,3 +61,11 @@ workspace/dist/
 # Logs
 logs/
 *.log
+
+# Build artifacts
+tsconfig.tsbuildinfo
+workspace/tsconfig.tsbuildinfo
+
+# macOS metadata
+**/.DS_Store
+.DS_Store
