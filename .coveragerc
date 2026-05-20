@@ -1,0 +1,48 @@
+[run]
+source = src/ai_customer_service
+omit =
+    # Infrastructure: DB connections, Redis, auth — integration tests only
+    */infrastructure/database.py
+    */infrastructure/redis_client.py
+    */infrastructure/auth.py
+    */infrastructure/container.py
+    # App layer: FastAPI startup, HTTP routers, Socket.IO — integration tests only
+    */app/main.py
+    */app/routers/*.py
+    */app/workspace/socket_server.py
+    */app/workspace/session_manager.py
+    */app/dependencies.py
+    */app/schemas.py
+    # External adapters: DB repos, LLM clients, datasources — integration tests only
+    */adapters/repositories/*.py
+    */adapters/datasources/*.py
+    */adapters/datasources/**/*.py
+    */adapters/llm/*.py
+    */adapters/observability/*.py
+    # Retrieval adapters: need live DB/Redis — integration tests only
+    */adapters/retrieval/bm25_retriever.py
+    */adapters/retrieval/pgvector_store.py
+    # Use-case layer: services that wrap DB repos — integration tests only
+    */use_cases/business_profile_service.py
+    */use_cases/business_rules_service.py
+    */use_cases/faq_service.py
+    */use_cases/product_service.py
+    # Graph-level wiring: builder, admin graph (integration)
+    */graph/builder.py
+    */graph/admin_graph/*.py
+    */graph/node_config.py
+    # Workspace use cases: integration-level service
+    */use_cases/workspace_service.py
+    */use_cases/chat_service.py
+    */use_cases/digest_service.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if TYPE_CHECKING:
+    raise NotImplementedError
+    \.\.\.$
+    pass$
+show_missing = true
+precision = 1

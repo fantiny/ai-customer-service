@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>缘梦婚纱 · 测试控制台</title>
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #18181f;
+    --surface2: #22222c;
+    --border: #2a2a38;
+    --text: #e8e8f0;
+    --muted: #7070a0;
+    --pink: #e879a0;
+    --blue: #6366f1;
+    --green: #10b981;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --orange: #f97316;
+    --cyan: #06b6d4;
+    --purple: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 24px;
+    font-size: 13px; line-height: 1.5;
+  }
+  h1 { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  h2 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+       letter-spacing: .08em; margin-bottom: 12px; display: flex; align-items: center; gap-6px; }
+  h2 span { margin-right: 6px; }
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .status-row { display: flex; align-items: center; gap: 12px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 99px;
+    font-size: 11px; font-weight: 600; border: 1px solid;
+  }
+  .badge.online  { color: var(--green);  border-color: rgba(16,185,129,.3); background: rgba(16,185,129,.08); }
+  .badge.offline { color: var(--red);    border-color: rgba(239,68,68,.3);  background: rgba(239,68,68,.08); }
+  .badge.warn    { color: var(--yellow); border-color: rgba(245,158,11,.3); background: rgba(245,158,11,.08); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* Grid */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } .grid3 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 600px) { .grid3 { grid-template-columns: 1fr; } }
+
+  /* Cards */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px;
+  }
+  .section { margin-bottom: 28px; }
+
+  /* User card */
+  .user-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px;
+    display: flex; flex-direction: column; gap: 8px;
+    transition: border-color .15s, transform .1s;
+    cursor: default;
+  }
+  .user-card:hover { border-color: var(--blue); transform: translateY(-1px); }
+  .user-card .top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .user-card .name { font-weight: 700; font-size: 14px; }
+  .user-card .uid  { font-size: 10px; color: var(--muted); font-family: monospace; margin-top: 2px; }
+  .user-card .order-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600;
+    border: 1px solid; white-space: nowrap;
+  }
+  .tag.stage-sewing   { color: var(--blue);   border-color: rgba(99,102,241,.3); background: rgba(99,102,241,.1); }
+  .tag.stage-cutting  { color: var(--cyan);   border-color: rgba(6,182,212,.3);  background: rgba(6,182,212,.1); }
+  .tag.stage-beading  { color: var(--purple); border-color: rgba(168,85,247,.3); background: rgba(168,85,247,.1); }
+  .tag.stage-qc       { color: var(--yellow); border-color: rgba(245,158,11,.3); background: rgba(245,158,11,.1); }
+  .tag.stage-ready    { color: var(--green);  border-color: rgba(16,185,129,.3); background: rgba(16,185,129,.1); }
+  .tag.stage-pending  { color: var(--muted);  border-color: var(--border);       background: var(--surface2); }
+  .tag.status-shipped    { color: var(--cyan);   border-color: rgba(6,182,212,.3);  background: rgba(6,182,212,.1); }
+  .tag.status-delivered  { color: var(--green);  border-color: rgba(16,185,129,.3); background: rgba(16,185,129,.1); }
+  .tag.status-cancelled  { color: var(--red);    border-color: rgba(239,68,68,.3);  background: rgba(239,68,68,.1); }
+  .tag.status-completed  { color: var(--muted);  border-color: var(--border);       background: var(--surface2); }
+  .tag.status-refund_processing { color: var(--orange); border-color: rgba(249,115,22,.3); background: rgba(249,115,22,.1); }
+  .tag.rush  { color: var(--red);    border-color: rgba(239,68,68,.3);  background: rgba(239,68,68,.1); }
+  .tag.complaint { color: var(--orange); border-color: rgba(249,115,22,.3); background: rgba(249,115,22,.1); }
+
+  /* Agent card */
+  .agent-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px;
+    transition: border-color .15s, transform .1s;
+  }
+  .agent-card:hover { border-color: var(--purple); transform: translateY(-1px); }
+  .agent-card .agent-header { display: flex; align-items: center; gap: 10px; }
+  .agent-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .agent-name { font-weight: 700; font-size: 14px; }
+  .agent-role { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .agent-id-row {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 10px;
+  }
+  .agent-id-label { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+  .agent-id-val { font-family: monospace; font-size: 11px; color: #a0c4ff; flex: 1; }
+  .tag.role-manager  { color: var(--purple); border-color: rgba(168,85,247,.3); background: rgba(168,85,247,.1); }
+  .tag.role-senior   { color: var(--blue);   border-color: rgba(99,102,241,.3); background: rgba(99,102,241,.1); }
+  .tag.role-regular  { color: var(--muted);  border-color: var(--border);       background: var(--surface2); }
+
+  /* Auth separation notice */
+  .auth-notice {
+    background: rgba(168,85,247,.06); border: 1px solid rgba(168,85,247,.25);
+    border-radius: 8px; padding: 12px 14px; margin-bottom: 20px;
+    font-size: 11px; line-height: 1.8;
+  }
+  .auth-notice strong { color: var(--purple); }
+  .auth-notice .sep-row { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 8px; }
+  .auth-notice .sep-item {
+    display: flex; flex-direction: column; gap: 2px;
+    background: var(--surface2); border-radius: 6px; padding: 8px 12px; flex: 1; min-width: 180px;
+  }
+  .auth-notice .sep-item .sep-label { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+  .auth-notice .sep-item .sep-val { font-size: 12px; }
+  .wedding-days { font-size: 11px; color: var(--muted); }
+  .wedding-days.urgent { color: var(--red); font-weight: 700; }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 12px; border-radius: 7px; border: 1px solid;
+    font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    transition: opacity .15s, transform .1s; text-decoration: none;
+    background: transparent; color: inherit; font-family: inherit;
+  }
+  .btn:hover { opacity: .85; transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn-primary { color: var(--blue);  border-color: rgba(99,102,241,.4);  background: rgba(99,102,241,.12); }
+  .btn-green   { color: var(--green); border-color: rgba(16,185,129,.4);  background: rgba(16,185,129,.12); }
+  .btn-pink    { color: var(--pink);  border-color: rgba(232,121,160,.4); background: rgba(232,121,160,.12); }
+  .btn-muted   { color: var(--muted); border-color: var(--border);        background: var(--surface2); }
+  .btn-yellow  { color: var(--yellow);border-color: rgba(245,158,11,.4);  background: rgba(245,158,11,.12); }
+  .btn-red     { color: var(--red);   border-color: rgba(239,68,68,.4);   background: rgba(239,68,68,.12); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  .btn-sm { padding: 4px 8px; font-size: 10px; }
+
+  /* Scenario card */
+  .scenario-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px;
+    transition: border-color .15s;
+  }
+  .scenario-card:hover { border-color: var(--pink); }
+  .scenario-num { font-size: 10px; color: var(--muted); font-weight: 700; }
+  .scenario-title { font-size: 13px; font-weight: 700; }
+  .scenario-desc { font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .script {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px;
+    font-family: monospace; font-size: 11px; color: #a0c4ff; line-height: 1.7;
+  }
+  .script .line { display: block; }
+  .script .q { color: var(--pink); }
+  .script .label { color: var(--muted); }
+
+  /* Log console */
+  #log {
+    background: #0a0a10; border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; font-family: monospace; font-size: 11px;
+    height: 160px; overflow-y: auto; line-height: 1.8;
+  }
+  #log .entry { display: flex; gap: 8px; }
+  #log .ts { color: var(--muted); flex-shrink: 0; }
+  #log .ok { color: var(--green); }
+  #log .err { color: var(--red); }
+  #log .info { color: var(--blue); }
+  #log .warn { color: var(--yellow); }
+
+  /* API tester */
+  .api-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+  .api-method {
+    font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+    font-family: monospace; flex-shrink: 0;
+  }
+  .GET  { background: rgba(16,185,129,.2);  color: var(--green); }
+  .POST { background: rgba(99,102,241,.2);  color: var(--blue); }
+  .api-path { font-family: monospace; font-size: 11px; color: #a0c4ff; flex: 1; }
+  .api-desc { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+
+  /* Separator */
+  hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* Settings row */
+  .setting-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .setting-row label { font-size: 11px; color: var(--muted); min-width: 80px; }
+  input[type=text], input[type=number] {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 5px 10px; font-size: 12px; font-family: inherit;
+    outline: none; transition: border-color .15s;
+  }
+  input:focus { border-color: var(--blue); }
+  input[type=text] { flex: 1; min-width: 200px; max-width: 400px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 8px 16px; font-size: 12px; font-weight: 600; cursor: pointer;
+    border: none; background: none; color: var(--muted); border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: color .15s; font-family: inherit;
+  }
+  .tab.active { color: var(--text); border-bottom-color: var(--blue); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Toast */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .toast-item {
+    padding: 10px 16px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    border: 1px solid; max-width: 320px; animation: slideIn .2s ease;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: none; } }
+  .toast-ok  { background: rgba(16,185,129,.15); border-color: rgba(16,185,129,.4); color: var(--green); }
+  .toast-err { background: rgba(239,68,68,.15);  border-color: rgba(239,68,68,.4);  color: var(--red); }
+  .toast-info{ background: rgba(99,102,241,.15); border-color: rgba(99,102,241,.4); color: var(--blue); }
+
+  /* Progress bar inside user card */
+  .progress-stages {
+    display: flex; gap: 2px; align-items: center;
+  }
+  .stage-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0;
+    transition: background .2s;
+  }
+  .stage-dot.done    { background: var(--green); }
+  .stage-dot.current { background: var(--pink); box-shadow: 0 0 6px var(--pink); }
+  .stage-line { flex: 1; height: 1px; background: var(--border); }
+  .stage-line.done { background: var(--green); }
+</style>
+</head>
+<body>
+
+<!-- ─────────────────────────────────── Header ─────────────────────────────── -->
+<div class="header">
+  <div>
+    <h1>💐 缘梦婚纱 · 测试控制台</h1>
+    <div style="color:var(--muted);font-size:11px;margin-top:4px;">
+      选择用户身份直接打开对话窗口，无需手动配置 token
+    </div>
+  </div>
+  <div class="status-row">
+    <div class="badge offline" id="backend-badge"><span class="dot"></span>后端检测中…</div>
+    <div class="badge warn"    id="jwt-badge"><span class="dot"></span>JWT 检测中…</div>
+    <div class="badge offline" id="frontend-badge"><span class="dot"></span>前端检测中…</div>
+    <button class="btn btn-muted btn-sm" onclick="checkStatus()">↻ 刷新</button>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────── Config ─────────────────────────────── -->
+<div class="card section">
+  <h2><span>⚙</span> 连接配置</h2>
+  <div class="setting-row">
+    <label>后端地址</label>
+    <input type="text" id="api-url" value="http://localhost:8000" placeholder="http://localhost:8000">
+  </div>
+  <div class="setting-row">
+    <label>前端地址</label>
+    <input type="text" id="frontend-url" value="" placeholder="http://localhost:3000">
+  </div>
+  <div class="setting-row">
+    <label>Token 有效期</label>
+    <input type="number" id="token-expires" value="86400" min="60" max="2592000" style="width:100px">
+    <span style="color:var(--muted);font-size:11px;">秒（默认24h）</span>
+  </div>
+  <div class="btn-row" style="margin-top:6px;">
+    <button class="btn btn-green btn-sm" onclick="checkStatus()">检查连接状态</button>
+    <button class="btn btn-muted btn-sm" onclick="clearLog()">清除日志</button>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────── Tabs ──────────────────────────────── -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('users')">👤 测试用户</button>
+  <button class="tab" onclick="switchTab('agents')">👔 工作台登录</button>
+  <button class="tab" onclick="switchTab('scenarios')">📋 测试场景</button>
+  <button class="tab" onclick="switchTab('api')">🔌 API 测试</button>
+  <button class="tab" onclick="switchTab('log')">📟 运行日志</button>
+</div>
+
+<!-- ═══════════════════════════════ TAB: USERS ═══════════════════════════════ -->
+<div class="tab-content active" id="tab-users">
+
+  <div class="section">
+    <h2><span>🔄</span> 生产中订单 — 全流程覆盖</h2>
+    <div class="grid3" id="grid-active"></div>
+  </div>
+
+  <div class="section">
+    <h2><span>🚚</span> 已发货 · 物流跟踪场景</h2>
+    <div class="grid3" id="grid-shipped"></div>
+  </div>
+
+  <div class="section">
+    <h2><span>⚠️</span> 售后 · 投诉 · 退款场景</h2>
+    <div class="grid3" id="grid-aftersales"></div>
+  </div>
+
+  <div class="section">
+    <h2><span>📦</span> 刚下单 · 历史订单</h2>
+    <div class="grid3" id="grid-other"></div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════ TAB: AGENTS ═════════════════════════════════ -->
+<div class="tab-content" id="tab-agents">
+
+  <!-- Auth separation notice -->
+  <div class="auth-notice">
+    <strong>🔑 身份体系说明</strong>：前台（客户）与后台（客服）的登录身份完全独立，互不影响。
+    <div class="sep-row">
+      <div class="sep-item">
+        <span class="sep-label">👤 前台 · 客户身份</span>
+        <span class="sep-val">JWT token（或 <code>?user=</code> 访客）</span>
+        <span style="color:var(--muted);font-size:10px;margin-top:2px;">socket 事件：<code>join</code> → 发起对话</span>
+      </div>
+      <div class="sep-item">
+        <span class="sep-label">👔 后台 · 客服身份</span>
+        <span class="sep-val">Agent ID + 姓名（工作台表单填写）</span>
+        <span style="color:var(--muted);font-size:10px;margin-top:2px;">socket 事件：<code>join_workspace</code> → 进入工作台</span>
+      </div>
+    </div>
+    <div style="margin-top:10px;color:var(--muted);">
+      点击下方"打开工作台"按钮可直接进入后台视图，在工作台登录表单填入对应的 Agent ID 与姓名即可。
+    </div>
+  </div>
+
+  <!-- Quick open button -->
+  <div style="margin-bottom:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <button class="btn btn-primary" onclick="openWorkspace()" style="font-size:12px;padding:8px 18px;">
+      🖥 打开工作台（后台视图）
+    </button>
+    <span style="color:var(--muted);font-size:11px;">URL 自动携带 <code>?view=agent</code>，直接显示后台界面</span>
+  </div>
+
+  <!-- Agent cards -->
+  <div class="section">
+    <h2><span>👔</span> 客服账号预设</h2>
+    <div class="grid3" id="grid-agents"></div>
+  </div>
+
+  <!-- Usage instructions -->
+  <div class="card section" style="margin-top:8px;">
+    <h2 style="margin-bottom:12px;"><span>📖</span> 测试步骤</h2>
+    <ol style="padding-left:18px;font-size:12px;color:var(--muted);line-height:2.2;list-style-type:decimal;">
+      <li>点击上方 <strong style="color:var(--text);">打开工作台</strong>，在新窗口进入后台界面。</li>
+      <li>复制下方任一 <strong style="color:var(--purple);">Agent ID</strong>（如 <code>agent_li_hong</code>）并在工作台登录表单填入姓名后提交。</li>
+      <li>回到 <strong style="color:var(--text);">👤 测试用户</strong> 标签，用客户身份发起对话。</li>
+      <li>工作台将实时显示进来的会话；客服可认领、回复、审批 HITL 请求、结单。</li>
+      <li>前台与后台身份完全独立——<strong style="color:var(--text);">关闭工作台不影响客户对话</strong>，反之亦然。</li>
+    </ol>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════ TAB: SCENARIOS ════════════════════════════ -->
+<div class="tab-content" id="tab-scenarios">
+
+<div class="grid2">
+  <!-- Left column: AI auto-handled -->
+  <div>
+    <h2 style="margin-bottom:14px;"><span>🤖</span> AI 自动处理场景</h2>
+    <div style="display:flex;flex-direction:column;gap:10px;" id="scenarios-ai"></div>
+  </div>
+  <!-- Right column: Human escalation -->
+  <div>
+    <h2 style="margin-bottom:14px;"><span>👤</span> 人工介入场景（HITL / 转人工）</h2>
+    <div style="display:flex;flex-direction:column;gap:10px;" id="scenarios-human"></div>
+  </div>
+</div>
+
+</div>
+
+<!-- ════════════════════════════════ TAB: API ════════════════════════════════ -->
+<div class="tab-content" id="tab-api">
+  <div class="section">
+    <h2><span>🔑</span> 认证</h2>
+    <div class="api-row">
+      <span class="api-method POST">POST</span>
+      <span class="api-path">/api/auth/token</span>
+      <span class="api-desc">签发测试 JWT（需 JWT_SECRET）</span>
+      <button class="btn btn-primary btn-sm" onclick="apiTest('POST','/api/auth/token',{user_id:'user_chen_fang',name:'陈方',email:'chen@test.com'})">测试</button>
+    </div>
+    <div class="api-row">
+      <span class="api-method GET">GET</span>
+      <span class="api-path">/api/auth/me</span>
+      <span class="api-desc">验证当前 token 并返回身份</span>
+      <button class="btn btn-primary btn-sm" onclick="apiTestWithToken('/api/auth/me')">测试</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2><span>📊</span> 工单 & 数据</h2>
+    <div class="api-row">
+      <span class="api-method GET">GET</span>
+      <span class="api-path">/api/workspace/tickets</span>
+      <span class="api-desc">所有待处理工单</span>
+      <button class="btn btn-green btn-sm" onclick="apiTest('GET','/api/workspace/tickets')">测试</button>
+    </div>
+    <div class="api-row">
+      <span class="api-method GET">GET</span>
+      <span class="api-path">/api/workspace/tickets?status=resolved</span>
+      <span class="api-desc">已结单工单</span>
+      <button class="btn btn-green btn-sm" onclick="apiTest('GET','/api/workspace/tickets?status=resolved')">测试</button>
+    </div>
+    <div class="api-row">
+      <span class="api-method GET">GET</span>
+      <span class="api-path">/api/workspace/analytics</span>
+      <span class="api-desc">7天业务分析报告</span>
+      <button class="btn btn-green btn-sm" onclick="apiTest('GET','/api/workspace/analytics')">测试</button>
+    </div>
+    <div class="api-row">
+      <span class="api-method GET">GET</span>
+      <span class="api-path">/api/workspace/analytics?days=30</span>
+      <span class="api-desc">30天业务分析</span>
+      <button class="btn btn-green btn-sm" onclick="apiTest('GET','/api/workspace/analytics?days=30')">测试</button>
+    </div>
+    <div class="api-row">
+      <span class="api-method GET">GET</span>
+      <span class="api-path">/api/workspace/metrics/today</span>
+      <span class="api-desc">今日 KPI 统计</span>
+      <button class="btn btn-green btn-sm" onclick="apiTest('GET','/api/workspace/metrics/today')">测试</button>
+    </div>
+    <div class="api-row">
+      <span class="api-method GET">GET</span>
+      <span class="api-path">/api/workspace/agents</span>
+      <span class="api-desc">客服账号列表</span>
+      <button class="btn btn-green btn-sm" onclick="apiTest('GET','/api/workspace/agents')">测试</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2><span>⚙</span> 管理配置</h2>
+    <div class="api-row">
+      <span class="api-method GET">GET</span>
+      <span class="api-path">/api/workspace/admin/rules</span>
+      <span class="api-desc">业务规则列表</span>
+      <button class="btn btn-yellow btn-sm" onclick="apiTest('GET','/api/workspace/admin/rules')">测试</button>
+    </div>
+    <div class="api-row">
+      <span class="api-method GET">GET</span>
+      <span class="api-path">/api/workspace/admin/prompts</span>
+      <span class="api-desc">Prompt 节点列表</span>
+      <button class="btn btn-yellow btn-sm" onclick="apiTest('GET','/api/workspace/admin/prompts')">测试</button>
+    </div>
+    <div class="api-row">
+      <span class="api-method GET">GET</span>
+      <span class="api-path">/health</span>
+      <span class="api-desc">健康检查</span>
+      <button class="btn btn-muted btn-sm" onclick="apiTest('GET','/health')">测试</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-bottom:10px;"><span>📄</span> 最后一次 API 响应</h2>
+    <pre id="api-result" style="font-family:monospace;font-size:11px;color:#a0c4ff;
+      white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;
+      background:var(--surface2);border:1px solid var(--border);padding:12px;border-radius:6px;">
+— 点击任意 API 按钮查看响应 —</pre>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ TAB: LOG ════════════════════════════════ -->
+<div class="tab-content" id="tab-log">
+  <div class="card">
+    <h2 style="margin-bottom:10px;"><span>📟</span> 操作日志</h2>
+    <div id="log"></div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────── Toast ─────────────────────────────── -->
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════ DATA ═════════════════════════════════════════════
+
+const USERS = {
+  active: [
+    { uid:'user_chen_fang',  name:'陈方',  order:'WD-2025-0001', item:'星河·鱼尾（香槟）',
+      status:'confirmed', stage:'sewing', rush:false, weddingDays:39,
+      note:'缝制中，婚期39天', complaint:false },
+    { uid:'user_liu_xin',    name:'刘欣',  order:'WD-2025-0002', item:'倾城·蕾丝A型',
+      status:'confirmed', stage:'cutting', rush:false, weddingDays:54,
+      note:'剪裁中，婚期54天', complaint:false },
+    { uid:'user_zhang_hui',  name:'张慧',  order:'WD-2025-0003', item:'晨曦拖尾礼服',
+      status:'confirmed', stage:'beading', rush:true, weddingDays:24,
+      note:'珠绣中 · 加急 · 婚期仅24天！', complaint:false },
+    { uid:'user_wang_min',   name:'王敏',  order:'WD-2025-0004', item:'云绒公主裙（裸粉）',
+      status:'confirmed', stage:'qc', rush:false, weddingDays:11,
+      note:'质检中，婚期11天，即将完成', complaint:false },
+    { uid:'user_zhao_lei',   name:'赵磊',  order:'WD-2025-0005', item:'映月·轻纱（薰衣草）',
+      status:'confirmed', stage:'ready', rush:false, weddingDays:7,
+      note:'质检完成，等待确认发货，婚期7天', complaint:false },
+    { uid:'user_ding_chen',  name:'丁晨',  order:'WD-2025-0021', item:'初见修身（淡蓝·加急）',
+      status:'confirmed', stage:'sewing', rush:true, weddingDays:17,
+      note:'缝制中 · 加急 · 婚期17天', complaint:false },
+  ],
+  shipped: [
+    { uid:'user_li_mei',     name:'李梅',  order:'WD-2025-0006', item:'素颜·日系轻婚纱',
+      status:'shipped', stage:'ready', rush:false, weddingDays:9,
+      note:'顺丰 SF7890001234567，婚期9天', complaint:false },
+    { uid:'user_huang_ting', name:'黄婷',  order:'WD-2025-0007', item:'锦绣秀禾（大红）',
+      status:'shipped', stage:'ready', rush:false, weddingDays:5,
+      note:'圆通 YT9988776655441，婚期仅5天！', complaint:false },
+    { uid:'user_sun_jing',   name:'孙静',  order:'WD-2025-0008', item:'初见修身（香槟·加急）',
+      status:'shipped', stage:'ready', rush:true, weddingDays:2,
+      note:'顺丰 SF7001122334455，婚期仅2天！', complaint:false },
+  ],
+  aftersales: [
+    { uid:'user_luo_jia',    name:'罗佳',  order:'WD-2025-0024', item:'倾城蕾丝A型（裸粉）',
+      status:'delivered', stage:'ready', rush:false, weddingDays:9,
+      note:'已签收·质量投诉·蕾丝脱落', complaint:true },
+    { uid:'user_xiong_yun',  name:'熊云',  order:'WD-2025-0025', item:'仙气蕾丝A型（淡粉）',
+      status:'delivered', stage:'ready', rush:false, weddingDays:13,
+      note:'已签收·颜色不符投诉', complaint:true },
+    { uid:'user_wei_qing',   name:'魏青',  order:'WD-2025-0023', item:'云绒公主裙（象牙白）',
+      status:'refund_processing', stage:'sewing', rush:false, weddingDays:0,
+      note:'退款处理中，缝制阶段取消', complaint:false },
+  ],
+  other: [
+    { uid:'user_gao_lu',     name:'高璐',  order:'WD-2025-0013', item:'霞光渐变礼服',
+      status:'pending', stage:'pending', rush:false, weddingDays:64,
+      note:'刚下单，待排产，婚期64天', complaint:false },
+    { uid:'user_lin_xia',    name:'林夏',  order:'WD-2025-0014', item:'花嫁·全套套餐',
+      status:'pending', stage:'pending', rush:false, weddingDays:69,
+      note:'全套套餐，待排产', complaint:false },
+    { uid:'user_tang_wei',   name:'唐薇',  order:'WD-2025-0019', item:'星河鱼尾（历史）',
+      status:'completed', stage:'ready', rush:false, weddingDays:-45,
+      note:'已完成历史订单，婚礼已过', complaint:false },
+    { uid:'user_chen_fang',  name:'陈方',  order:'WD-2025-0018', item:'锦绣秀禾（酒红·历史）',
+      status:'completed', stage:'ready', rush:false, weddingDays:-30,
+      note:'同一账号第二单历史订单', complaint:false },
+  ],
+};
+
+const STAGES = ['pending','confirmed','cutting','sewing','beading','qc','ready'];
+const STAGE_LABELS = {
+  pending:'待排产', cutting:'剪裁', sewing:'缝制',
+  beading:'珠绣', qc:'质检', ready:'完成', confirmed:'已确认',
+};
+const STATUS_LABELS = {
+  confirmed:'生产中', shipped:'已发货', delivered:'已签收',
+  pending:'待处理', completed:'已完成', cancelled:'已取消',
+  refund_processing:'退款中',
+};
+
+const AGENTS = [
+  {
+    agent_id: 'agent_li_hong',
+    name: '李红',
+    role: '客服经理',
+    roleTag: 'role-manager',
+    avatar: '👩‍💼',
+    avatarBg: 'rgba(168,85,247,.15)',
+    desc: '负责投诉升级、退款审批及 HITL 高风险操作',
+    skills: ['投诉处理', 'HITL 审批', '退款审核'],
+  },
+  {
+    agent_id: 'agent_wang_fang',
+    name: '王芳',
+    role: '资深客服',
+    roleTag: 'role-senior',
+    avatar: '👩‍💻',
+    avatarBg: 'rgba(99,102,241,.15)',
+    desc: '擅长订单查询、物流跟踪、加急协调',
+    skills: ['订单管理', '物流跟踪', '加急协调'],
+  },
+  {
+    agent_id: 'agent_zhang_ming',
+    name: '张明',
+    role: '客服专员',
+    roleTag: 'role-regular',
+    avatar: '🧑‍💼',
+    avatarBg: 'rgba(112,112,160,.15)',
+    desc: '日常咨询接待、FAQ 解答、对话认领',
+    skills: ['日常咨询', 'FAQ 解答', '客户接待'],
+  },
+  {
+    agent_id: 'agent_chen_yu',
+    name: '陈宇',
+    role: '质检客服',
+    roleTag: 'role-senior',
+    avatar: '🧑‍🔧',
+    avatarBg: 'rgba(6,182,212,.15)',
+    desc: '专攻售后质量问题、色差投诉、工艺确认',
+    skills: ['质量投诉', '色差处理', '工艺确认'],
+  },
+];
+
+const SCENARIOS_AI = [
+  { num:'S-01', title:'订单进度查询', user:'user_chen_fang', order:'WD-2025-0001',
+    lines:['我的婚纱做到哪里了？', '还有多久能做好？', '婚期快到了有点担心'] },
+  { num:'S-02', title:'物流查询', user:'user_li_mei', order:'WD-2025-0006',
+    lines:['我的婚纱发货了吗？', '快递单号是多少？', '什么时候能到？'] },
+  { num:'S-03', title:'款式推荐', user:null, order:null,
+    lines:['我是梨形身材，哪款婚纱适合？', '想要飘逸感觉的婚纱，有推荐吗？', '预算一万以内有什么好看的？'] },
+  { num:'S-04', title:'加急费用咨询', user:null, order:null,
+    lines:['婚礼是下个月15号，还能定制吗？', '星河鱼尾加急30天要多少钱？', '有最快15天的方案吗？'] },
+  { num:'S-05', title:'退款计算（剪裁中）', user:'user_liu_xin', order:'WD-2025-0002',
+    lines:['WD-2025-0002 现在退款能退多少？', '我想取消这个订单'] },
+  { num:'S-06', title:'政策咨询', user:null, order:null,
+    lines:['婚纱颜色和图片不一样怎么办？', '定制婚纱先付多少定金？', '蕾丝脱落能保修吗？'] },
+  { num:'S-07', title:'颜色选择', user:null, order:null,
+    lines:['象牙白和香槟色有什么区别？', '什么肤色适合哪种颜色？', '能先寄色样给我看看吗？'] },
+];
+
+const SCENARIOS_HUMAN = [
+  { num:'H-01', title:'取消订单 → HITL 审批', user:'user_chen_fang', order:'WD-2025-0001',
+    lines:['我要取消婚纱订单', '帮我把 WD-2025-0001 取消掉'],
+    expect:'AI 识别高风险操作→工作台弹出 HITL 审批' },
+  { num:'H-02', title:'申请加急 → HITL 审批', user:'user_gao_lu', order:'WD-2025-0013',
+    lines:['婚期提前了，WD-2025-0013 能加急吗？', '需要30天内做好'],
+    expect:'工作台弹出加急申请审批，客服确认产能后批准' },
+  { num:'H-03', title:'退款申请（珠绣阶段0%）', user:'user_zhang_hui', order:'WD-2025-0003',
+    lines:['WD-2025-0003 我要退款', '婚礼取消了，能全退吗？'],
+    expect:'AI告知0%退款→客户坚持→HITL升级人工' },
+  { num:'H-04', title:'质量投诉 → 转人工', user:'user_luo_jia', order:'WD-2025-0024',
+    lines:['婚纱好多线头，质量太差！', '蕾丝都脱落了，我要投诉！'],
+    expect:'AI安抚→情绪激动自动转人工→工作台显示AI摘要' },
+  { num:'H-05', title:'颜色不符 → 投诉', user:'user_xiong_yun', order:'WD-2025-0025',
+    lines:['颜色完全不对！我要的淡粉结果是深粉', '和图片差太多，要退货退款'],
+    expect:'AI解释色差→若坚持认为质量问题→转人工处理' },
+  { num:'H-06', title:'婚期极度紧张', user:'user_sun_jing', order:'WD-2025-0008',
+    lines:['我婚礼是后天！婚纱还没到怎么办！', '我现在很着急，快帮我！'],
+    expect:'AI识别紧急情况→主动转人工，标注紧急优先级' },
+  { num:'H-07', title:'主动要求人工', user:null, order:null,
+    lines:['我要找人工客服', '转接真人，AI 解决不了'],
+    expect:'触发 human_escalation_node，转接工作台' },
+];
+
+// ══════════════════════════ STATE ════════════════════════════════════════════
+
+let lastToken = null;
+let lastUserId = null;
+
+// ══════════════════════════ UTILS ════════════════════════════════════════════
+
+const apiUrl = () => document.getElementById('api-url').value.replace(/\/$/, '');
+const frontendUrl = () => {
+  const v = document.getElementById('frontend-url').value.trim().replace(/\/$/, '');
+  return v || window.location.origin;  // 默认：test.html 所在的同一 origin
+};
+const expiresIn = () => parseInt(document.getElementById('token-expires').value) || 86400;
+
+function log(type, msg) {
+  const el = document.getElementById('log');
+  const ts = new Date().toLocaleTimeString('zh-CN', {hour12:false});
+  const entry = document.createElement('div');
+  entry.className = 'entry';
+  entry.innerHTML = `<span class="ts">${ts}</span><span class="${type}">${msg}</span>`;
+  el.appendChild(entry);
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('log').innerHTML = '';
+}
+
+function toast(type, msg, dur=3000) {
+  const container = document.getElementById('toast');
+  const el = document.createElement('div');
+  el.className = `toast-item toast-${type}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), dur);
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+// ══════════════════════════ STATUS CHECK ═════════════════════════════════════
+
+async function checkStatus() {
+  log('info', '检查连接状态…');
+
+  // Backend
+  try {
+    const r = await fetch(apiUrl() + '/health', {signal: AbortSignal.timeout(3000)});
+    if (r.ok) {
+      setBadge('backend-badge', 'online', '后端在线');
+      log('ok', `后端在线 ${apiUrl()}`);
+    } else {
+      setBadge('backend-badge', 'offline', `后端 ${r.status}`);
+      log('err', `后端异常 ${r.status}`);
+    }
+  } catch(e) {
+    setBadge('backend-badge', 'offline', '后端离线');
+    log('err', `后端无法连接: ${e.message}`);
+  }
+
+  // JWT
+  try {
+    const r = await fetch(apiUrl() + '/api/auth/token', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({user_id:'_test_', name:'test', expires_in:60}),
+      signal: AbortSignal.timeout(3000),
+    });
+    if (r.ok) {
+      setBadge('jwt-badge', 'online', 'JWT 已配置');
+      log('ok', 'JWT_SECRET 已配置，可生成 token 登录');
+    } else if (r.status === 501) {
+      setBadge('jwt-badge', 'warn', 'JWT 未配置');
+      log('warn', 'JWT_SECRET 未设置，将使用 ?user= 访客模式');
+    } else {
+      setBadge('jwt-badge', 'warn', `JWT ${r.status}`);
+    }
+  } catch(e) {
+    setBadge('jwt-badge', 'offline', 'JWT 检测失败');
+  }
+
+  // Frontend
+  try {
+    const r = await fetch(frontendUrl(), {signal: AbortSignal.timeout(3000), mode: 'no-cors'});
+    setBadge('frontend-badge', 'online', '前端在线');
+    log('ok', `前端在线 ${frontendUrl()}`);
+  } catch(e) {
+    setBadge('frontend-badge', 'offline', '前端离线');
+    log('err', `前端无法连接: ${e.message}`);
+  }
+}
+
+function setBadge(id, cls, text) {
+  const el = document.getElementById(id);
+  el.className = `badge ${cls}`;
+  el.innerHTML = `<span class="dot"></span>${text}`;
+}
+
+// ══════════════════════════ OPEN USER ════════════════════════════════════════
+
+async function openUser(uid, name) {
+  log('info', `正在为 ${name}(${uid}) 获取 token…`);
+
+  // Try JWT first
+  try {
+    const r = await fetch(apiUrl() + '/api/auth/token', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({user_id:uid, name:name, expires_in:expiresIn()}),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (r.ok) {
+      const data = await r.json();
+      lastToken = data.access_token;
+      lastUserId = uid;
+      const url = `${frontendUrl()}/?token=${data.access_token}`;
+      log('ok', `Token 签发成功，正在打开: ${uid}`);
+      window.open(url, `chat-${uid}`);
+      toast('ok', `✓ 以 ${name} 身份打开聊天窗口`);
+      return;
+    }
+    if (r.status === 501) {
+      // JWT not configured, fall back to ?user= mode
+      throw new Error('JWT_NOT_CONFIGURED');
+    }
+  } catch(e) {
+    if (e.message !== 'JWT_NOT_CONFIGURED') {
+      log('warn', `Token 获取失败 (${e.message})，切换到访客模式`);
+    }
+  }
+
+  // Fallback: ?user= guest mode
+  const url = `${frontendUrl()}/?user=${uid}`;
+  log('warn', `使用访客模式（?user=${uid}）打开，无身份验证`);
+  window.open(url, `chat-${uid}`);
+  toast('info', `以访客模式打开（${uid}）`);
+}
+
+async function openWorkspace() {
+  const url = `${frontendUrl()}/?view=agent`;
+  window.open(url, 'workspace');
+  log('info', '打开工作台（后台视图）');
+  toast('info', '已打开工作台，在登录表单填入 Agent ID 与姓名');
+}
+
+function openWorkspaceAs(agentId, name) {
+  const url = `${frontendUrl()}/?view=agent`;
+  window.open(url, `workspace-${agentId}`);
+  // Copy agent_id to clipboard for convenience
+  navigator.clipboard.writeText(agentId).catch(() => {});
+  log('info', `以 ${name}(${agentId}) 身份打开工作台（Agent ID 已复制到剪贴板）`);
+  toast('ok', `✓ 工作台已打开，Agent ID「${agentId}」已复制 — 在登录表单粘贴即可`);
+}
+
+// ══════════════════════════ API TEST ═════════════════════════════════════════
+
+async function apiTest(method, path, body) {
+  const url = apiUrl() + path;
+  log('info', `${method} ${path}`);
+  try {
+    const opts = {method, headers:{'Content-Type':'application/json'}};
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(url, opts);
+    const data = await r.json().catch(() => null);
+    const text = JSON.stringify(data, null, 2);
+    document.getElementById('api-result').textContent = `${method} ${path}\nHTTP ${r.status}\n\n${text}`;
+    log(r.ok ? 'ok' : 'err', `${method} ${path} → ${r.status}`);
+    switchTab('api');
+    if (!r.ok) toast('err', `API 错误 ${r.status}`);
+  } catch(e) {
+    log('err', `${method} ${path} 失败: ${e.message}`);
+    toast('err', `请求失败: ${e.message}`);
+  }
+}
+
+async function apiTestWithToken(path) {
+  if (!lastToken) {
+    toast('err', '请先点击任意用户按钮生成 token');
+    return;
+  }
+  const url = apiUrl() + path;
+  log('info', `GET ${path} (with Bearer token)`);
+  try {
+    const r = await fetch(url, {headers:{'Authorization':`Bearer ${lastToken}`}});
+    const data = await r.json().catch(() => null);
+    document.getElementById('api-result').textContent =
+      `GET ${path}\nHTTP ${r.status}\nAuthorization: Bearer ***\n\n${JSON.stringify(data, null, 2)}`;
+    log(r.ok ? 'ok' : 'err', `GET ${path} → ${r.status}`);
+    switchTab('api');
+  } catch(e) {
+    log('err', `GET ${path} 失败: ${e.message}`);
+  }
+}
+
+// ══════════════════════════ RENDER ═══════════════════════════════════════════
+
+function stageClass(stage) {
+  return `stage-${stage}`;
+}
+
+function statusClass(status) {
+  return `status-${status}`;
+}
+
+function weddingDaysText(days) {
+  if (days <= 0) return { text: '婚礼已过', urgent: false };
+  if (days <= 7)  return { text: `婚期仅 ${days} 天！`, urgent: true };
+  if (days <= 14) return { text: `婚期 ${days} 天`, urgent: true };
+  return { text: `婚期 ${days} 天`, urgent: false };
+}
+
+function renderProgressBar(stage) {
+  const stages = ['pending', 'cutting', 'sewing', 'beading', 'qc', 'ready'];
+  const idx = stages.indexOf(stage);
+  const html = stages.map((s, i) => {
+    const cls = i < idx ? 'done' : i === idx ? 'current' : '';
+    const dot = `<span class="stage-dot ${cls}" title="${STAGE_LABELS[s]||s}"></span>`;
+    if (i < stages.length - 1) {
+      const lineCls = i < idx ? 'done' : '';
+      return dot + `<span class="stage-line ${lineCls}"></span>`;
+    }
+    return dot;
+  }).join('');
+  return `<div class="progress-stages">${html}</div>`;
+}
+
+function renderUserCard(u) {
+  const wd = weddingDaysText(u.weddingDays);
+  return `
+<div class="user-card">
+  <div class="top">
+    <div>
+      <div class="name">${u.name} ${u.rush ? '<span class="tag rush">⚡加急</span>' : ''} ${u.complaint ? '<span class="tag complaint">🔥投诉</span>' : ''}</div>
+      <div class="uid">${u.uid}</div>
+    </div>
+    <div class="${'wedding-days' + (wd.urgent ? ' urgent' : '')}">${wd.text}</div>
+  </div>
+
+  <div class="order-row">
+    <span class="tag ${stageClass(u.stage)}">${STAGE_LABELS[u.stage]||u.stage}</span>
+    <span class="tag ${statusClass(u.status)}">${STATUS_LABELS[u.status]||u.status}</span>
+    <span style="font-size:10px;color:var(--muted);font-family:monospace;">${u.order}</span>
+  </div>
+
+  <div style="font-size:11px;color:var(--muted);">${u.item}</div>
+
+  ${u.status === 'confirmed' && u.stage !== 'pending' ? renderProgressBar(u.stage) : ''}
+
+  <div style="font-size:10px;color:var(--muted);line-height:1.5;">${u.note}</div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary btn-sm" onclick="openUser('${u.uid}','${u.name}')">
+      💬 以此身份测试
+    </button>
+    <button class="btn btn-muted btn-sm"
+      onclick="navigator.clipboard.writeText('${u.uid}').then(()=>toast('ok','已复制 user_id'))">
+      📋 复制 ID
+    </button>
+  </div>
+</div>`;
+}
+
+function renderAgentCard(a) {
+  const skillTags = a.skills.map(s =>
+    `<span class="tag" style="color:var(--muted);border-color:var(--border);background:var(--surface2);">${s}</span>`
+  ).join('');
+
+  return `
+<div class="agent-card">
+  <div class="agent-header">
+    <div class="agent-avatar" style="background:${a.avatarBg};">${a.avatar}</div>
+    <div>
+      <div class="agent-name">${a.name} <span class="tag ${a.roleTag}" style="margin-left:4px;">${a.role}</span></div>
+      <div class="agent-role">${a.desc}</div>
+    </div>
+  </div>
+
+  <div class="agent-id-row">
+    <span class="agent-id-label">Agent ID</span>
+    <span class="agent-id-val">${a.agent_id}</span>
+    <button class="btn btn-muted btn-sm" style="flex-shrink:0;"
+      onclick="navigator.clipboard.writeText('${a.agent_id}').then(()=>toast('ok','已复制 Agent ID: ${a.agent_id}'))">
+      📋 复制
+    </button>
+  </div>
+
+  <div class="order-row">${skillTags}</div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary btn-sm" onclick="openWorkspaceAs('${a.agent_id}','${a.name}')">
+      🖥 打开工作台（${a.name}）
+    </button>
+  </div>
+</div>`;
+}
+
+function renderScenarioCard(s, isHuman) {
+  const userBtn = s.user
+    ? `<button class="btn ${isHuman?'btn-pink':'btn-primary'} btn-sm" onclick="openUser('${s.user}','${s.user}')">打开 ${s.user}</button>`
+    : `<button class="btn btn-green btn-sm" onclick="openUser('guest-test','访客')">访客身份打开</button>`;
+
+  const scripts = s.lines.map(l =>
+    `<span class="line"><span class="q">用户：</span>${l}</span>`
+  ).join('');
+
+  const expectEl = s.expect
+    ? `<div style="margin-top:6px;padding:6px 8px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);border-radius:5px;font-size:10px;color:#c084fc;"><span style="font-weight:700;">预期：</span>${s.expect}</div>`
+    : '';
+
+  return `
+<div class="scenario-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div class="scenario-num">${s.num}</div>
+    ${userBtn}
+  </div>
+  <div class="scenario-title">${s.title}</div>
+  ${s.order ? `<div style="font-size:10px;color:var(--muted);font-family:monospace;">${s.order}</div>` : ''}
+  <div class="script">${scripts}</div>
+  ${expectEl}
+</div>`;
+}
+
+function render() {
+  document.getElementById('grid-active').innerHTML =
+    USERS.active.map(renderUserCard).join('');
+  document.getElementById('grid-shipped').innerHTML =
+    USERS.shipped.map(renderUserCard).join('');
+  document.getElementById('grid-aftersales').innerHTML =
+    USERS.aftersales.map(renderUserCard).join('');
+  document.getElementById('grid-other').innerHTML =
+    USERS.other.map(renderUserCard).join('');
+
+  document.getElementById('grid-agents').innerHTML =
+    AGENTS.map(renderAgentCard).join('');
+
+  document.getElementById('scenarios-ai').innerHTML =
+    SCENARIOS_AI.map(s => renderScenarioCard(s, false)).join('');
+  document.getElementById('scenarios-human').innerHTML =
+    SCENARIOS_HUMAN.map(s => renderScenarioCard(s, true)).join('');
+}
+
+// ══════════════════════════ INIT ═════════════════════════════════════════════
+
+// 自动填入当前 origin 作为前端地址（test.html 本身就运行在前端上）
+(function initUrls() {
+  const feInput = document.getElementById('frontend-url');
+  if (feInput && !feInput.value) {
+    feInput.value = window.location.origin;
+  }
+})();
+
+render();
+setTimeout(checkStatus, 300);
+log('info', '测试控制台已初始化');
+log('info', `前端地址自动设为 ${window.location.origin}`);
+</script>
+</body>
+</html>
