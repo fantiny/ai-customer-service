@@ -44,14 +44,22 @@ class LLMFactory:
         """Build an embedding client.
 
         Provider priority:
-          1. EMBEDDING_PROVIDER=local  → fastembed (fully local, no API key needed)
-          2. MiniMax base URL          → MinimaxEmbeddings (custom adapter)
-          3. Everything else           → OpenAIEmbeddings
+          1. EMBEDDING_PROVIDER=local      → fastembed (fully local, no API key needed)
+          2. EMBEDDING_PROVIDER=dashscope  → DashScopeEmbeddings (native API, avoids compat issues)
+          3. MiniMax base URL              → MinimaxEmbeddings (custom adapter)
+          4. Everything else               → OpenAIEmbeddings
         """
         if settings.EMBEDDING_PROVIDER == "local":
             from .local_embedding import LocalEmbeddingClient
             model = settings.EMBEDDING_MODEL or "BAAI/bge-small-zh-v1.5"
             return LocalEmbeddingClient(model)
+
+        if settings.EMBEDDING_PROVIDER == "dashscope":
+            from .dashscope_embeddings import DashScopeEmbeddings
+            return DashScopeEmbeddings(
+                api_key=settings.EMBEDDING_API_KEY or settings.LLM_API_KEY,
+                model=settings.EMBEDDING_MODEL or "text-embedding-v2",
+            )
 
         base_url = (settings.EMBEDDING_BASE_URL or settings.LLM_BASE_URL or "").rstrip("/")
         if "minimaxi.com" in base_url or "minimax" in base_url.lower():
