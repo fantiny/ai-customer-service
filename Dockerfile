@@ -6,18 +6,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy everything first so setuptools can find src/
 COPY pyproject.toml .
-# Install production dependencies only (exclude dev group)
-RUN pip install --no-cache-dir -e . --no-deps \
- && pip install --no-cache-dir \
-    langgraph langgraph-checkpoint-redis langgraph-checkpoint-postgres \
-    langchain-core langchain-community langchain-openai langchain-anthropic \
-    fastapi "uvicorn[standard]" pydantic pydantic-settings \
-    asyncpg pgvector "psycopg[binary,pool]" "redis[asyncio]" \
-    langfuse rank-bm25 httpx "python-socketio[asyncio_client]" \
-    python-jose python-multipart aiofiles pillow
-
 COPY src/ src/
+
+# Install the package and all dependencies
+RUN pip install --no-cache-dir -e .
+
+# Copy remaining files (scripts, workspace, etc.)
+COPY . .
 
 # Create uploads directory
 RUN mkdir -p /app/uploads
