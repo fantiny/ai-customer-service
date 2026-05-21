@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS faq_documents (
     --   industry_knowledge = general knowledge (LLM may supplement)
     knowledge_type TEXT NOT NULL DEFAULT 'industry_knowledge'
                    CHECK (knowledge_type IN ('business_policy', 'industry_knowledge')),
-    embedding      vector(1536),
+    embedding      vector(512),
     created_at     TIMESTAMPTZ DEFAULT NOW(),
     updated_at     TIMESTAMPTZ DEFAULT NOW()
 );

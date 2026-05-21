@@ -19,6 +19,10 @@ COPY . .
 # Create uploads directory
 RUN mkdir -p /app/uploads
 
+# Pre-download local embedding model so first-request cold start is instant.
+# EMBEDDING_PROVIDER=local uses BAAI/bge-small-zh-v1.5 (512-dim, ~22MB ONNX).
+RUN python -c "from fastembed import TextEmbedding; list(TextEmbedding('BAAI/bge-small-zh-v1.5').embed(['warmup']))"
+
 EXPOSE 8000
 
 CMD ["uvicorn", "src.ai_customer_service.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
