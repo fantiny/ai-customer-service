@@ -153,7 +153,7 @@ class Container:
             embedding_client=embedding_client,
             reranker=reranker,
             k=settings.RETRIEVAL_K,
-            min_vector_score=0.55,
+            min_vector_score=settings.RETRIEVAL_MIN_VECTOR_SCORE,
         )
 
         # 8. Data sources (config-driven: internal DB or external REST API)
@@ -219,7 +219,7 @@ class Container:
                 embedding_client=embedding_client,
                 reranker=reranker,
                 k=settings.RETRIEVAL_K,
-                min_vector_score=0.55,
+                min_vector_score=settings.RETRIEVAL_MIN_VECTOR_SCORE,
             )
         if prod_cat != "product_catalog":
             bm25_product = await BM25Retriever.from_db(self._db_pool, category=prod_cat)

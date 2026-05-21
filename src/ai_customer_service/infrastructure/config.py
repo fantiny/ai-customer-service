@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     RERANKER_ENABLED: bool = False
     RERANKER_MODEL: str = "BAAI/bge-reranker-base"
     RETRIEVAL_K: int = Field(default=5, ge=1, le=20)
+    # Minimum cosine similarity for pgvector results.
+    # OpenAI embeddings: 0.55 works well. DashScope / other providers: use 0.3.
+    RETRIEVAL_MIN_VECTOR_SCORE: float = Field(default=0.3, ge=0.0, le=1.0)
 
     # --- Auth / JWT ---
     # Leave JWT_SECRET empty to run in open/guest mode (no token required).
