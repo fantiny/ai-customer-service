@@ -14,12 +14,17 @@ from ..state import CustomerServiceState
 logger = logging.getLogger(__name__)
 
 # ── Hardcoded fallback (used when BusinessProfile is not injected) ─────────────
-ROUTER_SYSTEM_PROMPT = """你是一个婚纱电商客服意图分类器。分析用户最近的消息，将其准确分类为以下七种意图之一：
+ROUTER_SYSTEM_PROMPT = """你是一个婚纱电商客服意图分类器。分析完整的对话历史，结合上下文来理解用户当前消息的真实意图，将其准确分类为以下七种意图之一。
 
-**product** — 用户咨询具体商品或想要推荐：
+重要：意图判断必须结合整个对话流程，不能只看最后一条消息。例如：同一句话在"刚刚推荐了商品"的上下文中是 product；在"客户刚提过有现有订单"的上下文中可能是 order_read。
+
+
+**product** — 用户咨询具体商品、想要推荐，或在选购过程中做出购买决定：
 - 推荐婚纱款式、问某款婚纱价格
 - 询问某款婚纱特点、面料、颜色、适合场合
 - 问"有没有便宜的"、"哪款最受欢迎"等商品筛选问题
+- 在推荐或选购过程中表达购买意向（"就定这款"、"我要这款"、"就选XX款吧"、"下单这个"、"就买这个了"）
+- 上下文是商品推荐时，客户说"就定了"、"确定了"、"就这个"等 → 必须选 product，不要选 order_write
 
 **faq** — 用户咨询通用政策或业务知识（非特定商品）：
 - 退换货政策、售后保障
@@ -61,6 +66,7 @@ ROUTER_SYSTEM_PROMPT = """你是一个婚纱电商客服意图分类器。分析
 - 仅描述质量问题、未要求退款时选 aftersales；明确要求退款时选 order_write
 - 问商品推荐选 product；问政策、流程选 faq
 - 仅问量体方法（不含实际数字）选 faq；开始实际提供尺寸数据时选 measurement_guide
+- ⚠️ 关键区分：客户在推荐/选购场景中说"就定这款"、"我要这款"、"就选这个" → 选 product（新购咨询），不是 order_write（order_write 只针对已存在的订单号）
 
 仅返回 JSON，不要解释。"""
 
@@ -180,7 +186,9 @@ async def router_node(state: CustomerServiceState, config: RunnableConfig) -> di
 
     # Force function_calling — avoids <think> tag interference on reasoning models
     classifier = llm.with_structured_output(intent_model, method="function_calling")
-    recent_messages = state["messages"][-6:]
+    # Use last 10 messages so the LLM has enough conversation arc to resolve
+    # context-dependent intents (e.g. "就定这款了" after product recommendation).
+    recent_messages = state["messages"][-10:]
 
     try:
         result = await classifier.ainvoke(

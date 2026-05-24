@@ -833,3 +833,58 @@ def test_make_tools_sources_sink_none_safe():
     faq_service.retrieve = AsyncMock(return_value=[])
     tools = _make_tools(faq_service, None, None, "u1", None)
     assert len(tools) == 1
+
+
+def test_system_prompt_contains_purchase_decision_guidance():
+    """UNIFIED_AGENT_SYSTEM_PROMPT must include guidance for purchase decision flow.
+
+    When customer says '就定这款' the agent must NOT call get_order_info;
+    instead it guides through the new order consultation flow.
+    """
+    assert "购买决策" in UNIFIED_AGENT_SYSTEM_PROMPT
+    assert "get_order_info" in UNIFIED_AGENT_SYSTEM_PROMPT  # mentioned in the restriction
+    assert "就定这款" in UNIFIED_AGENT_SYSTEM_PROMPT or "就定" in UNIFIED_AGENT_SYSTEM_PROMPT
+
+
+@pytest.mark.asyncio
+async def test_purchase_decision_does_not_call_get_order_info():
+    """When customer says '就定这款了', the agent should guide purchase flow, not query orders.
+
+    The LLM (mocked) should not invoke get_order_info when user expresses purchase intent.
+    We verify by mocking LLM to return no tool calls (direct reply), simulating
+    the correct behavior where the agent guides through purchase process.
+    """
+    product = MagicMock()
+    product.to_context_str = MagicMock(return_value="云裳鱼尾婚纱 - ¥8800")
+    product_service = MagicMock()
+    product_service.get = AsyncMock(return_value=product)
+    product_service.list_all = AsyncMock(return_value=[product])
+    product_service.search = AsyncMock(return_value=[product])
+
+    # LLM goes straight to final reply (no tool calls) — correct behavior for purchase intent
+    final_resp = MagicMock()
+    final_resp.tool_calls = []
+    final_resp.content = "太棒了！云裳鱼尾婚纱是个非常好的选择～接下来需要您提供身材数据"
+
+    agent_llm = MagicMock()
+    agent_llm.ainvoke = AsyncMock(return_value=final_resp)
+
+    llm = MagicMock()
+    llm.bind_tools = MagicMock(return_value=agent_llm)
+
+    state = _state(
+        messages=[
+            HumanMessage(content="给我推荐一款鱼尾婚纱"),
+            MagicMock(content="为您推荐云裳鱼尾婚纱，¥8800，适合高挑身材"),
+            HumanMessage(content="就定这款了！"),
+        ],
+        intent="product",
+    )
+
+    result = await unified_agent_node(state, _config(llm=llm, product_service=product_service))
+    reply = result["messages"][0].content
+
+    # Should give a positive purchase guidance reply, not ask for order ID
+    assert reply  # non-empty
+    assert "请提供您的订单号" not in reply
+    assert "您有多笔订单" not in reply

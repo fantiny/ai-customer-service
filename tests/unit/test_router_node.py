@@ -59,3 +59,21 @@ async def test_routes_general_intent():
     state = _make_state("你好，谢谢你的帮助")
     result = await router_node(state, config=_make_config("general"))
     assert result["intent"] == "general"
+
+
+@pytest.mark.asyncio
+async def test_router_system_prompt_contains_purchase_decision_rule():
+    """ROUTER_SYSTEM_PROMPT must explicitly classify purchase decisions as product intent."""
+    from ai_customer_service.graph.nodes.router_node import ROUTER_SYSTEM_PROMPT
+    # The prompt must guide LLM to classify "就定这款" as product, not order_write
+    assert "就定" in ROUTER_SYSTEM_PROMPT or "购买意向" in ROUTER_SYSTEM_PROMPT or "购买决" in ROUTER_SYSTEM_PROMPT
+    # The prompt must warn against misclassifying purchase decisions as order_write
+    assert "order_write" in ROUTER_SYSTEM_PROMPT
+
+
+@pytest.mark.asyncio
+async def test_purchase_decision_routes_to_product():
+    """When customer says '就定这款了' LLM should return product intent."""
+    state = _make_state("就定这款云裳鱼尾婚纱了！")
+    result = await router_node(state, config=_make_config("product"))
+    assert result["intent"] == "product"

@@ -34,40 +34,123 @@ logger = logging.getLogger(__name__)
 # ── System prompt ─────────────────────────────────────────────────────────────
 
 UNIFIED_AGENT_SYSTEM_PROMPT = """\
-你是「{business_name}」的智能客服，能同时完整回答客户的多个问题。
+你是「{business_name}」的智能客服。你的核心职责不只是回答问题，而是为客户提供完整可操作的服务方案——涉及购买、退换货、售后等环节时，给出具体的流程、链接和联系方式，让客户清晰知道下一步怎么做。
 
-## 工作方式
-1. 仔细阅读客户消息，判断需要哪些信息才能完整回答
-2. 主动调用必要的工具获取真实数据（可同时调用多个工具）
-3. 将所有数据综合成一条自然、完整的回复
-
-## 工具使用原则
-- 涉及政策/流程/费用/保障等业务问题 → 必须调用 retrieve_knowledge
-- 涉及订单状态/进度/物流/退款进度 → 必须调用 get_order_info
-- 涉及商品推荐或款式询问 → 必须调用 list_products 或 get_product_detail
+## 一、工具使用原则（先获取数据，再综合回答）
+- 政策/流程/费用/保障等知识问题 → 必须调用 retrieve_knowledge
+- 订单状态/进度/物流/退款进度（已有订单）→ 必须调用 get_order_info
+- 商品推荐、款式咨询 → 必须调用 list_products 或 get_product_detail
 - 售后投诉 → 调用 retrieve_knowledge 获取处理政策，结合人文关怀回复
-- 若客户同时有多个问题，先调全部工具收集数据，再统一综合回答
-- 不确定时优先查询，不要猜测
+- 客户同时有多个问题 → 同时调用多个工具，统一综合回答
+- 不确定时优先查询，不要猜测或编造
 
-## 数据可靠性
-- 工具返回含 [POLICY] 标记的文档：严格基于文档，禁止补充文档未提及的政策、价格、期限
+## 二、数据可靠性
+- 工具返回含 [POLICY] 标记的文档：严格基于文档，禁止补充未提及的政策/价格/期限
 - 工具返回含 [KNOWLEDGE] 标记的文档：可结合行业通用知识适当补充
 - 无相关文档但问题涉及退换货/赔偿/保障等政策：说明无法确认，建议联系人工客服
-- 商品信息：只使用工具返回的真实数据，禁止生成任何 URL 或虚构价格
+- 商品信息：只使用工具返回的真实数据，禁止生成虚构 URL 或价格
 
-## 回复规范
-- 自然口语，像真实客服发短信一样
+## 三、完整服务方案（涉及外部系统时必须给完整路径）
+
+### 3A. 购买决策（⚠️ 不要调用 get_order_info）
+触发条件：客户在推荐/选购过程中表达购买意向（"就定这款了"/"我要这款"/"下单这个"/"就买这个吧"）
+→ 这是【新购流程】，不是已有订单操作，不要询问订单号
+
+执行步骤：
+1. 调用 get_product_detail 获取商品完整信息（含购买链接）
+2. 热情确认选择，给出完整购买路径：
+   - 若商品有购买链接（purchase_url 非空）→ 直接提供链接
+   - 若无链接 → 从运营信息中引用顾问联系方式/热线
+3. 根据是定制款还是现货款，给出对应流程：
+   - 定制款：需提供身材数据 → 说明定金比例和排产流程
+   - 现货款：说明全款流程和发货时间
+4. 引用运营信息中的支付方式和下单后流程说明
+5. 添加 [ACTION] 按钮（如「开始量体」「联系顾问」）
+
+### 3B. 退货/退款（给完整操作路径）
+触发条件：客户询问如何退货、退款，或表达退货意向
+执行步骤：
+1. 调用 retrieve_knowledge 获取退货政策（退款比例、条件）
+2. 若有订单号，调用 get_order_info 确认当前制作阶段，计算可退金额
+3. 给出完整退货操作路径（引用运营信息中的退货联系方式和时效）
+4. 根据退货原因说明运费责任
+5. 添加 [ACTION] 按钮（如「申请退货」「提供订单号」）
+
+### 3C. 换货（给完整操作路径）
+触发条件：客户反映质量问题、尺码不符，或询问换货
+执行步骤：
+1. 调用 retrieve_knowledge 获取换货政策
+2. 给出完整换货操作路径（引用运营信息中的换货联系方式和时效）
+3. 说明需要提供的材料（订单号、问题描述、照片）
+4. 添加 [ACTION] 按钮（如「申请换货」「联系客服」）
+
+## 四、回复规范
+- 自然口语，像真实客服发短信一样，有温度、有实质内容
 - 严禁 Markdown（不用 **加粗**、#标题、列表符号、分隔线）
 - 最多 1 个 emoji
 - 若客户有多个问题，按逻辑顺序逐一回答，自然衔接
+- 永远不要只回答"是的可以"而不给出具体路径
 
-## 行动按钮（选用）
-若回复后客户明显有下一步可操作，在消息末尾附加行动按钮（最多2个）：
+## 五、行动按钮（选用）
+在消息末尾附加（最多2个）：
 [ACTION:按钮文字:发送内容]
-规则：按钮文字≤8字；仅在有明确下一步操作时才添加，不强制
+规则：按钮文字≤8字；仅在有明确下一步操作时添加
 示例：[ACTION:查看物流:查询ORD-001物流进度][ACTION:申请退货:我要申请退货]
+{operational_context}
 {order_context_hint}
 {lang_rule}"""
+
+
+# ── Operational context helper ───────────────────────────────────────────────
+
+async def _get_operational_context(rules_service, profile) -> str:
+    """Fetch purchase/return/exchange operational rules from business_rules and
+    format them as an injected context block in the system prompt.
+
+    This gives the LLM concrete, admin-configurable data about payment methods,
+    after-order process, and return/exchange paths so it can produce actionable
+    service flows rather than vague descriptions.
+
+    Returns an empty string when rules_service is None (test environments).
+    """
+    if rules_service is None:
+        return ""
+
+    # Keys to fetch and their human-readable labels for the prompt
+    _KEYS: list[tuple[str, str]] = [
+        ("purchase.payment_methods",    "支持的支付方式"),
+        ("purchase.deposit_note",       "定金/付款说明"),
+        ("purchase.after_order_process","下单后跟进流程"),
+        ("purchase.store_url",          "官方购买链接"),
+        ("purchase.consultant_contact", "联系顾问方式"),
+        ("return.how_to_apply",         "退货操作方式"),
+        ("return.timeline",             "退货退款时效"),
+        ("return.shipping_note",        "退货运费说明"),
+        ("exchange.how_to_apply",       "换货操作方式"),
+        ("exchange.timeline",           "换货时效"),
+    ]
+
+    hotline = profile.contact_config.hotline if profile else ""
+
+    parts: list[str] = []
+    for key, label in _KEYS:
+        try:
+            val = await rules_service.get(key, "")
+        except Exception:
+            continue
+        # Skip empty / placeholder values
+        if not val or val in ('""', "''"):
+            continue
+        if isinstance(val, str) and val.strip():
+            parts.append(f"- {label}：{val}")
+
+    if hotline:
+        parts.append(f"- 客服热线：{hotline}")
+
+    if not parts:
+        return ""
+
+    return "\n\n[运营信息 — 直接引用，不要修改或编造]\n" + "\n".join(parts)
 
 
 # ── Node ─────────────────────────────────────────────────────────────────────
@@ -86,6 +169,7 @@ async def unified_agent_node(
     faq_service = cfg.get("faq_service")
     order_service = cfg.get("order_service")
     product_service = cfg.get("product_service")
+    rules_service = cfg.get("rules_service")
     profile = cfg.get("business_profile")
     handler = cfg.get("langfuse_handler")
     callbacks = [handler] if handler else []
@@ -101,6 +185,10 @@ async def unified_agent_node(
     default_lang = await get_default_lang(config, last_user_text=last_user_text)
     lang_rule = make_lang_rule(default_lang, business_name=business_name)
 
+    # Fetch operational rules (payment, purchase process, return/exchange paths)
+    # to inject as concrete, admin-configurable context for service design responses.
+    operational_context = await _get_operational_context(rules_service, profile)
+
     # Inject existing order context as a hint (avoids re-asking for order ID)
     order_ctx: dict = state.get("order_context") or {}
     if order_ctx:
@@ -114,6 +202,7 @@ async def unified_agent_node(
 
     system_content = UNIFIED_AGENT_SYSTEM_PROMPT.format(
         business_name=business_name,
+        operational_context=operational_context,
         order_context_hint=order_context_hint,
         lang_rule=lang_rule,
     )

@@ -397,6 +397,45 @@ DEFAULT_BUSINESS_RULES = [
     # Handoff suggestions shown to human agent in workspace (Phase 6)
     ("handoff.suggestion.policy_no_doc",       '"请核实相关政策并告知客户具体条款，建议查阅内部政策手册"', "政策无文档交接建议"),
     ("handoff.suggestion.product_unavailable", '"请为客户介绍符合需求的商品，重点了解款式偏好和预算范围"', "商品不可用交接建议"),
+
+    # ── Purchase flow (外部系统 / 运营信息) ───────────────────────────────────────
+    # 这些 key 会在 unified_agent_node 中被读取并注入到系统 Prompt，
+    # 让 AI 在购买决策、退货、换货场景中给出完整可操作的服务方案。
+    # 管理员可在后台 Admin AI Chat 随时更新，无需重启服务。
+    ("purchase.payment_methods",
+     '"支付宝、微信支付、银行卡转账"',
+     "客户支持的支付方式（含义：客户可用哪些方式付款）"),
+    ("purchase.deposit_note",
+     '"定制款需支付30%定金，顾问确认订单后开始排产；尾款在婚纱完工后发货前付清。现货款全款付清后48小时内安排发货"',
+     "定金及尾款付款说明"),
+    ("purchase.after_order_process",
+     '"下单后24小时内，专属顾问会主动联系您，确认款式/颜色/尺码及定金支付方式，请保持手机畅通"',
+     "下单后跟进流程说明"),
+    ("purchase.store_url",
+     '""',
+     "官方购买页面链接（留空则引导客户联系顾问或拨打热线）"),
+    ("purchase.consultant_contact",
+     '"如需立即下单，请拨打客服热线 400-520-5201，或继续在线等待顾问联系"',
+     "引导客户联系顾问的话术"),
+
+    # ── Return / Refund flow ──────────────────────────────────────────────────
+    ("return.how_to_apply",
+     '"请拨打客服热线 400-520-5201 或直接在本对话告知我订单号和退货原因，客服将在1个工作日内审核"',
+     "如何发起退货的操作说明"),
+    ("return.timeline",
+     '"退货审核1-3个工作日；退款在审核通过后3-5个工作日原路退回，节假日顺延"',
+     "退货退款时效承诺"),
+    ("return.shipping_note",
+     '"质量问题退货：运费由我们承担；个人原因退货：运费自理。请使用顺丰快递并保留物流单号"',
+     "退货运费及物流要求"),
+
+    # ── Exchange flow ─────────────────────────────────────────────────────────
+    ("exchange.how_to_apply",
+     '"请拨打客服热线 400-520-5201 或在线告知订单号、问题描述及照片，客服审核通过后安排换货"',
+     "如何发起换货的操作说明"),
+    ("exchange.timeline",
+     '"换货审核1-3个工作日；换货婚纱按新单制作，制作周期以当时排产情况为准（通常45-60天）"',
+     "换货审核及制作时效"),
 ]
 
 
@@ -471,7 +510,7 @@ _WEDDING_DRESS_WORKFLOWS = [
 
 _WEDDING_DRESS_INTENTS = [
     # (intent_id, display_name, description, handler_node, requires_confirmation, is_continuation_node, sort_order)
-    ("product",     "商品咨询", "用户咨询具体商品或想要推荐婚纱款式、价格、面料、颜色等",                         "product_node",    False, False, 1),
+    ("product",     "商品咨询", "用户咨询具体商品或想要推荐婚纱款式、价格、面料、颜色等；或在推荐选购过程中表达购买意向（就定这款/我要这款/就选XX款），属新购咨询而非已有订单操作",  "product_node",    False, False, 1),
     ("faq",         "政策咨询", "用户咨询通用政策：退换货、量体流程、定制说明、配送物流、门店等",                    "faq_node",        False, False, 2),
     ("order_read",  "订单查询", "用户要查询某笔订单的信息（只读操作，如状态、进度、物流单号）",                       "order_read_node", False, True,  3),
     ("order_write", "订单操作", "用户要对已有订单执行写操作：取消订单、申请退款、申请加急制作",                       "order_write_node",True,  True,  4),
