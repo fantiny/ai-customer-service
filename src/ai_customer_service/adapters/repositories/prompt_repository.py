@@ -98,8 +98,23 @@ class PromptRepository:
             raise ValueError(f"prompt_id={prompt_id} not found for node={node_name}")
         return await self.publish_prompt(node_name, row["content"])
 
+    # All nodes that admins can customize; shown even before any prompt is published.
+    _KNOWN_NODES: tuple[str, ...] = (
+        "router_node",
+        "unified_agent_node",
+        "order_write_node",
+        "measurement_guide_node",
+        "safety_check_node",
+    )
+
     async def list_nodes(self) -> list[dict]:
-        """Return all nodes that have at least one prompt, with active version info."""
+        """Return all customizable nodes with active version info.
+
+        Always includes every node in _KNOWN_NODES so admins can publish a
+        prompt even before any DB entries exist (fresh install / empty table).
+        Nodes that have published prompts show their version number; nodes
+        without any customisation show version 0 and an empty preview.
+        """
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(
                 """
@@ -111,11 +126,19 @@ class PromptRepository:
                 ORDER BY node_name
                 """
             )
-        return [
-            {
+        db_map = {
+            r["node_name"]: {
                 "node_name": r["node_name"],
                 "version": r["active_version"] or 0,
                 "preview": r["preview"] or "",
             }
             for r in rows
-        ]
+        }
+        # Merge: known nodes first (in display order), then any extra DB nodes
+        result: list[dict] = []
+        for name in self._KNOWN_NODES:
+            result.append(db_map.get(name, {"node_name": name, "version": 0, "preview": ""}))
+        for name, data in db_map.items():
+            if name not in self._KNOWN_NODES:
+                result.append(data)
+        return result

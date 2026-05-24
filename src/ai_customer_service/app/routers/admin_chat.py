@@ -22,7 +22,7 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from ...graph.nodes._utils import strip_thinking
 from pydantic import BaseModel
 
-from ..dependencies import get_container, require_user
+from ..dependencies import get_container, get_current_user
 from ...infrastructure.auth import AuthUser
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -36,7 +36,7 @@ class AdminChatRequest(BaseModel):
 @router.post("/chat")
 async def admin_chat(
     body: AdminChatRequest,
-    user: AuthUser = Depends(require_user),
+    user: AuthUser = Depends(get_current_user),  # allow guests in open/JWT-free mode
     container=Depends(get_container),
 ) -> JSONResponse:
     """Send a message to the admin AI agent and get a configuration-aware reply.
@@ -65,7 +65,7 @@ async def admin_chat(
 @router.get("/chat/history/{thread_id}")
 async def admin_chat_history(
     thread_id: str,
-    user: AuthUser = Depends(require_user),
+    user: AuthUser = Depends(get_current_user),  # allow guests in open/JWT-free mode
     container=Depends(get_container),
 ) -> JSONResponse:
     """Return the conversation history for an admin chat thread.

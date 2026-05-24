@@ -5,22 +5,27 @@ import type { PromptHistory } from '../../types';
 import SectionShell from './shared/SectionShell';
 
 const NODE_LABELS: Record<string, string> = {
-  faq_node:        'FAQ 知识查询',
-  product_node:    '商品推荐',
-  order_read_node: '订单查询',
-  order_write_node:'订单操作',
-  aftersales_node: '售后处理',
-  general_node:    '通用对话',
-  router_node:     '意图路由',
+  router_node:            '意图路由',
+  unified_agent_node:     '智能客服（通用）',
+  order_write_node:       '订单操作（HITL）',
+  measurement_guide_node: '量体引导',
+  safety_check_node:      '安全检测',
+  // Legacy nodes — no longer routed to but may still have published prompts
+  faq_node:        'FAQ 查询（旧）',
+  product_node:    '商品推荐（旧）',
+  order_read_node: '订单查询（旧）',
+  aftersales_node: '售后处理（旧）',
+  general_node:    '通用对话（旧）',
 };
 
 const PLACEHOLDERS: Record<string, string[]> = {
+  router_node:            ['{business_name}'],
+  unified_agent_node:     ['{business_name}', '{operational_context}', '{order_context_hint}', '{lang_rule}'],
+  order_write_node:       ['{lang_rule}', '{business_name}', '{rush_info}'],
+  measurement_guide_node: ['{lang_rule}', '{business_name}'],
+  safety_check_node:      [],
   faq_node:        ['{lang_rule}', '{strict_instruction}', '{context}', '{business_name}'],
   product_node:    ['{lang_rule}', '{business_name}'],
-  order_read_node: ['{lang_rule}', '{result_message}', '{business_name}'],
-  order_write_node:['{lang_rule}', '{business_name}', '{rush_info}'],
-  aftersales_node: ['{lang_rule}', '{business_name}'],
-  general_node:    ['{lang_rule}', '{business_name}'],
 };
 
 export default function PromptsSection() {

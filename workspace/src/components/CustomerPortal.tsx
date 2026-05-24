@@ -56,7 +56,7 @@ type ConnState = 'disconnected' | 'connected';
 
 const WELCOME: ChatMsg = {
   role: 'bot',
-  content: '您好！欢迎来到缘梦婚纱 💐\n我是您的专属 AI 顾问，请问有什么可以帮助您的吗？\n\n您可以询问：婚纱款式 · 定制流程 · 尺码量体 · 订单查询 · 加急服务',
+  content: '您好！欢迎来到缘梦婚纱 💐\n请问有什么可以帮助您的吗？\n\n您可以询问：婚纱款式 · 定制流程 · 尺码量体 · 订单查询 · 加急服务',
   timestamp: new Date().toISOString(),
 };
 
@@ -367,7 +367,7 @@ export default function CustomerPortal({ identity, sessionId, onSessionChange }:
                   }} />
             <span className="text-[10px] uppercase tracking-widest font-bold truncate"
                   style={{ color: 'var(--color-muted)' }}>
-              {isConnected ? (agentMode ? '专属顾问接待中' : 'AI 顾问在线') : '连接中…'}
+              {isConnected ? (agentMode ? '客服接待中' : '在线客服') : '连接中…'}
             </span>
             {/* Customer ID badge */}
             <span className="text-[10px] px-1.5 py-0.5 rounded font-mono truncate max-w-[120px]"
@@ -600,7 +600,7 @@ export default function CustomerPortal({ identity, sessionId, onSessionChange }:
               {/* F1: Show real-time tool progress hint, fall back to generic text */}
               <motion.span key={progressText} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                 className="text-[12px]" style={{ color: 'var(--color-muted)' }}>
-                {progressText || '顾问回复中…'}
+                {progressText || '客服回复中…'}
               </motion.span>
             </div>
           </motion.div>
@@ -746,5 +746,5 @@ function roleColor(role: string) {
   return ({ user: 'var(--color-blue)', bot: 'var(--color-pink)', agent: 'var(--color-green)', system: 'var(--color-muted)' } as Record<string, string>)[role] ?? 'var(--color-muted)';
 }
 function roleLabel(role: string) {
-  return ({ user: '您', bot: 'AI 顾问', agent: '专属顾问', system: '系统' } as Record<string, string>)[role] ?? role;
+  return ({ user: '您', bot: '客服', agent: '客服', system: '系统' } as Record<string, string>)[role] ?? role;
 }

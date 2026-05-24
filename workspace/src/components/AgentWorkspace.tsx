@@ -1607,6 +1607,8 @@ export default function AgentWorkspace({
   const [showResolve, setShowResolve]   = useState(false);
   const [showHistory, setShowHistory]   = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  // Mobile: which column is visible
+  const [mobileTab, setMobileTab] = useState<'queue' | 'chat' | 'context'>('queue');
   // Agent identity — null until login
   const [myAgentId, setMyAgentId]       = useState<string | null>(null);
   const [myName, setMyName]             = useState<string>('');
@@ -1935,18 +1937,20 @@ export default function AgentWorkspace({
         )}
       </AnimatePresence>
       {/* Header */}
-      <header className="h-14 border-b flex items-center justify-between px-6 shrink-0"
+      <header className="h-14 border-b flex items-center justify-between px-3 md:px-6 shrink-0"
               style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <div className="w-7 h-7 rounded-md flex items-center justify-center text-sm font-bold shadow-lg"
                style={{ background: 'var(--color-pink)', boxShadow: '0 0 12px var(--color-pink-glow)' }}>💐</div>
-          <span className="font-semibold">缘梦婚纱 <span className="font-light opacity-40 italic text-sm">智能工作台</span></span>
+          <span className="font-semibold text-sm md:text-base">缘梦婚纱 <span className="hidden md:inline font-light opacity-40 italic text-sm">智能工作台</span></span>
         </div>
-        <div className="flex items-center gap-3 text-[10px]">
+        <div className="flex items-center gap-2 md:gap-3 text-[10px]">
           <StatusPill label="实时连接" active={connected} />
+          <span className="hidden sm:contents">
           <StatusPill label="HITL 待审批" value={queue.filter(s => s.mode === 'hitl_pending').length} color="var(--color-amber)" />
           <StatusPill label="人工接管"   value={queue.filter(s => s.mode === 'human').length}        color="var(--color-green)" />
-          <StatusPill label="顾问在线"   value={onlineAgents.length + 1}                             color="var(--color-blue)" />
+          <StatusPill label="客服在线"   value={onlineAgents.length + 1}                             color="var(--color-blue)" />
+          </span>
           {/* Current agent identity */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border"
                style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg)' }}>
@@ -1977,9 +1981,27 @@ export default function AgentWorkspace({
         </div>
       </header>
 
-      {/* 3-column layout */}
-      <main className="flex-1 grid overflow-hidden" style={{ gridTemplateColumns: '240px 1fr 280px', gap: '1px', background: 'var(--color-border)' }}>
-        <div className="overflow-hidden" style={{ background: 'var(--color-surface)' }}>
+      {/* 3-column layout — desktop: CSS grid; mobile: show only active tab column */}
+      <main className="flex-1 overflow-hidden workspace-main">
+        <style>{`
+          .workspace-main {
+            display: grid;
+            grid-template-columns: 240px 1fr 280px;
+            gap: 1px;
+            background: var(--color-border);
+          }
+          .workspace-main > .ws-col { overflow: hidden; background: var(--color-surface); }
+          @media (max-width: 767px) {
+            .workspace-main {
+              display: block;
+              background: var(--color-surface);
+            }
+            .workspace-main > .ws-col { display: none; height: 100%; }
+            .workspace-main > .ws-col.active { display: block; }
+          }
+        `}</style>
+
+        <div className={`ws-col${mobileTab === 'queue' ? ' active' : ''}`}>
           <SessionList
             sessions={queue}
             allSessions={allSessions}
@@ -1988,12 +2010,12 @@ export default function AgentWorkspace({
             slaWarnings={slaWarnings}
             unreadCounts={unreadCounts}
             customerTyping={customerTyping}
-            onSelect={handleSelectSession}
-            onClaim={handleClaim}
-            onIntervene={handleIntervene}
+            onSelect={(s) => { handleSelectSession(s); setMobileTab('chat'); }}
+            onClaim={async (s) => { const r = await handleClaim(s); setMobileTab('chat'); return r; }}
+            onIntervene={async (s) => { const r = await handleIntervene(s); setMobileTab('chat'); return r; }}
           />
         </div>
-        <div className="overflow-hidden" style={{ background: 'var(--color-surface)' }}>
+        <div className={`ws-col${mobileTab === 'chat' ? ' active' : ''}`}>
           <ConversationPanel
             session={activeSession}
             myAgentId={myAgentId ?? ''}
@@ -2002,7 +2024,7 @@ export default function AgentWorkspace({
             onTyping={handleAgentTyping}
           />
         </div>
-        <div className="overflow-hidden" style={{ background: 'var(--color-surface)' }}>
+        <div className={`ws-col${mobileTab === 'context' ? ' active' : ''}`}>
           <ContextPanel
             session={activeSession}
             onApprove={handleApprove}
@@ -2012,6 +2034,38 @@ export default function AgentWorkspace({
           />
         </div>
       </main>
+
+      {/* Mobile bottom tab bar */}
+      <nav
+        className="flex md:hidden border-t flex-shrink-0"
+        style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+      >
+        {([
+          { id: 'queue',   label: '会话队列', badge: queue.length },
+          { id: 'chat',    label: '对话',     badge: activeSession && unreadCounts[activeSession.session_id] ? unreadCounts[activeSession.session_id] : 0 },
+          { id: 'context', label: '信息',     badge: queue.filter(s => s.mode === 'hitl_pending').length },
+        ] as { id: 'queue' | 'chat' | 'context'; label: string; badge: number }[]).map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setMobileTab(tab.id)}
+            className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 relative text-[11px] font-medium"
+            style={{ color: mobileTab === tab.id ? 'var(--color-blue)' : 'var(--color-muted)' }}
+          >
+            {tab.label}
+            {tab.badge > 0 && (
+              <span
+                className="absolute top-1.5 right-1/4 text-[9px] px-1 py-0.5 rounded-full font-bold"
+                style={{ background: 'var(--color-pink)', color: '#fff', minWidth: 14, textAlign: 'center' }}
+              >
+                {tab.badge}
+              </span>
+            )}
+            {mobileTab === tab.id && (
+              <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 rounded-full" style={{ background: 'var(--color-blue)' }} />
+            )}
+          </button>
+        ))}
+      </nav>
 
       {/* History panel overlay */}
       <AnimatePresence>
@@ -2114,7 +2168,7 @@ function roleColor(role: string): string {
 }
 
 function roleLabel(role: string): string {
-  return { user: '客户', bot: 'AI 顾问', agent: '人工顾问', system: '系统' }[role] ?? role;
+  return { user: '客户', bot: '客服', agent: '客服', system: '系统' }[role] ?? role;
 }
 
 function roleBg(role: string): string {

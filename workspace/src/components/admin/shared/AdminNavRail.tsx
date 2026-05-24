@@ -23,11 +23,11 @@ export default function AdminNavRail({ active, onChange }: Props) {
 
   return (
     <nav
-      className="flex flex-col h-full py-4 px-3 gap-1 flex-shrink-0"
+      className="flex flex-col h-full py-4 px-3 gap-1 flex-shrink-0 overflow-y-auto"
       style={{
         width: 200,
         borderRight: '1px solid var(--color-border)',
-        background: 'rgba(15,20,40,0.6)',
+        background: 'rgba(15,20,40,0.97)',
       }}
     >
       {/* Brand */}
