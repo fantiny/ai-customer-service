@@ -10,8 +10,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml .
 COPY src/ src/
 
-# Install the package and all dependencies
-RUN pip install --no-cache-dir -e .
+# Install the package and all dependencies (including local-embed for fastembed)
+RUN pip install --no-cache-dir -e ".[local-embed]"
 
 # Copy remaining files (scripts, workspace, etc.)
 COPY . .
