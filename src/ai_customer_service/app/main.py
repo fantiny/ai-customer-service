@@ -107,7 +107,10 @@ async def _sla_watcher(container: Any, sio_server: Any) -> None:
             # ── Session-level SLA (HITL wait + human response time) ──────────
             sessions = await container.session_repo.get_active()
             for sess in sessions:
-                age_min = (now - sess.updated_at.replace(tzinfo=None)).total_seconds() / 60
+                updated = sess.updated_at
+                if updated.tzinfo is None:
+                    updated = updated.replace(tzinfo=timezone.utc)
+                age_min = (now - updated).total_seconds() / 60
                 warning = None
                 if sess.mode == "hitl_pending" and age_min > hitl_min:
                     warning = {

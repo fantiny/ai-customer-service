@@ -813,10 +813,13 @@ async def agent_knowledge_search(
     Designed for the AgentWorkspace sidebar — returns up to 5 results with
     title, snippet, knowledge_type. Requires a non-empty query string.
     """
+    import logging as _logging
+    _logger = _logging.getLogger(__name__)
     try:
         docs = await faq_svc.retrieve(q)
-    except Exception:
-        return JSONResponse(content={"results": []})
+    except Exception as _exc:
+        _logger.warning("KB search failed for query %r: %s", q, _exc, exc_info=True)
+        return JSONResponse(content={"results": [], "error": str(_exc)})
 
     results = []
     for doc in docs[:5]:
