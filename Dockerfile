@@ -19,8 +19,11 @@ COPY . .
 # Create uploads directory
 RUN mkdir -p /app/uploads
 
-# Pre-download local embedding model so first-request cold start is instant.
+# Pre-download local embedding model into a stable app-owned directory.
+# Using FASTEMBED_CACHE_DIR=/app/.fastembed_cache ensures the model survives
+# Docker layer caching and is found at the same path at runtime.
 # EMBEDDING_PROVIDER=local uses BAAI/bge-small-zh-v1.5 (512-dim, ~22MB ONNX).
+ENV FASTEMBED_CACHE_DIR=/app/.fastembed_cache
 RUN python -c "from fastembed import TextEmbedding; list(TextEmbedding('BAAI/bge-small-zh-v1.5').embed(['warmup']))"
 
 EXPOSE 8000
