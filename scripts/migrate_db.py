@@ -695,6 +695,72 @@ async def run_migrations() -> None:
         if inserted == 0 and len(_POLICY_DOCS) > 0:
             print("  · All business_policy FAQ documents already present.")
 
+        # ── Seed test orders (for HITL / E2E testing) ─────────────────────────
+        # These are demo orders to exercise cancel/refund/rush HITL flows.
+        # Idempotent: skipped if order_id already exists.
+        import datetime as _dt
+        _today = _dt.date.today()
+        _TEST_ORDERS = [
+            {
+                "order_id":        "ORD-TEST-001",
+                "user_id":         "test-user-001",
+                "status":          "confirmed",
+                "production_stage":"cutting",
+                "is_custom":       True,
+                "is_rush":         False,
+                "total":           9800.00,
+                "items":           json.dumps([{"product_id": "WD-001", "name": "云裳鱼尾婚纱", "quantity": 1, "unit_price": 9800}], ensure_ascii=False),
+                "wedding_date":    _today + _dt.timedelta(days=45),
+                "wedding_metadata": json.dumps({"bust": 84, "waist": 64, "hips": 90, "height": 165}, ensure_ascii=False),
+            },
+            {
+                "order_id":        "ORD-TEST-002",
+                "user_id":         "test-user-002",
+                "status":          "confirmed",
+                "production_stage":"sewing",
+                "is_custom":       True,
+                "is_rush":         False,
+                "total":           6800.00,
+                "items":           json.dumps([{"product_id": "WD-003", "name": "简约缎面直筒裙", "quantity": 1, "unit_price": 6800}], ensure_ascii=False),
+                "wedding_date":    _today + _dt.timedelta(days=20),
+                "wedding_metadata": json.dumps({"bust": 86, "waist": 68, "hips": 92, "height": 162}, ensure_ascii=False),
+            },
+            {
+                "order_id":        "ORD-TEST-003",
+                "user_id":         "test-user-003",
+                "status":          "confirmed",
+                "production_stage":"pending",
+                "is_custom":       True,
+                "is_rush":         False,
+                "total":           12800.00,
+                "items":           json.dumps([{"product_id": "WD-002", "name": "蕾丝花边A字裙", "quantity": 1, "unit_price": 12800}], ensure_ascii=False),
+                "wedding_date":    _today + _dt.timedelta(days=60),
+                "wedding_metadata": json.dumps({"bust": 82, "waist": 62, "hips": 88, "height": 160}, ensure_ascii=False),
+            },
+        ]
+        order_inserted = 0
+        for o in _TEST_ORDERS:
+            existing = await conn.fetchval("SELECT 1 FROM orders WHERE order_id=$1", o["order_id"])
+            if existing:
+                print(f"  · Order {o['order_id']} already exists, skipping.")
+                continue
+            await conn.execute(
+                """
+                INSERT INTO orders
+                    (order_id, user_id, status, production_stage, is_custom, is_rush,
+                     total, items, wedding_date, wedding_metadata, created_at, updated_at)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::date,$10::jsonb,NOW(),NOW())
+                """,
+                o["order_id"], o["user_id"], o["status"], o["production_stage"],
+                o["is_custom"], o["is_rush"], o["total"], o["items"],
+                o["wedding_date"], o["wedding_metadata"],
+            )
+            order_inserted += 1
+            print(f"  ✓ Inserted test order {o['order_id']} ({o['production_stage']} stage).")
+
+        if order_inserted == 0:
+            print("  · All test orders already present.")
+
         print("✓ Migrations applied successfully.")
     finally:
         await conn.close()
