@@ -834,35 +834,6 @@ async def agent_knowledge_search(
     return JSONResponse(content={"results": results})
 
 
-@router.get("/admin/debug/embedding", tags=["admin"])
-async def debug_embedding(
-    q: str = Query("退货政策", max_length=200),
-    container=Depends(get_container),
-) -> JSONResponse:
-    """Diagnostic: test embedding generation and vector search. Remove after debug."""
-    import traceback as _tb
-    result: dict = {"query": q}
-    try:
-        ec = container.embedding_client
-        vec = await ec.aembed_query(q)
-        result["embedding_dims"] = len(vec)
-        result["embedding_sample"] = [round(v, 4) for v in vec[:5]]
-        result["embedding_ok"] = True
-    except Exception as exc:
-        result["embedding_ok"] = False
-        result["embedding_error"] = str(exc)
-        result["embedding_trace"] = _tb.format_exc()[-500:]
-    try:
-        faq_svc = container.faq_service
-        docs = await faq_svc.retrieve(q)
-        result["retrieval_count"] = len(docs)
-        result["top_doc"] = docs[0].metadata.get("title", "?") if docs else None
-        result["top_score"] = round(float(docs[0].score or 0), 4) if docs else None
-    except Exception as exc:
-        result["retrieval_error"] = str(exc)
-        result["retrieval_trace"] = _tb.format_exc()[-500:]
-    return JSONResponse(content=result)
-
 
 # ── Daily digest ──────────────────────────────────────────────────────────────
 from ...use_cases.digest_service import DigestService as _DigestService
